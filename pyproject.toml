@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "frozen-automata"
+version = "0.1.0"
+description = ""
+authors = ["0xbeef1eaf <151461594+0xbeef1eaf@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "frozen_automata"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+Pillow = "^10.1.0"
+pystray = "^0.19.5"
+platformdirs = "^4.0.0"
+screeninfo = "^0.8.1"
+keyboard = "^0.13.5"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+pyright = "^1.1.337"
+pyinstaller = "^6.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+build = "pyinstaller frozen-automata.spec"
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs"
+]
+ignore = []
+defineConstant = { DEBUG = true }
+stubPath = "src/stubs"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+pythonVersion = "3.10"
+pythonPlatform = "Windows"
+
+executionEnvironments = [
+  { root = "src" }
+]
