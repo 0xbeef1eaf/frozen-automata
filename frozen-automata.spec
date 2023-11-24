@@ -25,6 +25,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
+    icon='resources\\default\\default.ico',
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
