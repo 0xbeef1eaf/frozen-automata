@@ -5,7 +5,7 @@ description = ""
 authors = ["0xbeef1eaf <151461594+0xbeef1eaf@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "frozen_automata"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
@@ -23,9 +23,6 @@ pyinstaller = "^6.2.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-build = "pyinstaller frozen-automata.spec"
 
 [tool.pyright]
 include = ["src"]
