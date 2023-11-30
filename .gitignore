@@ -190,3 +190,6 @@ pyrightconfig.json
 .ionide
 
 resources/packs/*
+!resources/packs/default
+
+old*

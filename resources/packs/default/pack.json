@@ -1,0 +1,16 @@
+{
+    "name": "default",
+    "description": "A default pack to both act as a template for other packs and also provide a set of default items for the app.",
+    "tags": [
+        "default"
+    ],
+    "captions": [
+        "I know what you are!"
+    ],
+    "buttons": [
+        "I Submit <3"
+    ],
+    "prompts": [
+        "I Submit <3"
+    ]
+}

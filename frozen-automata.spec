@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['src\\main.py'],
+    ['src\\app.py'],
     pathex=['src\\'],
     binaries=[],
-    datas=[('resources\\default\\', 'resources\\default\\')],
+    datas=[('resources\\', 'resources')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -25,7 +25,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    icon='resources\\default\\default.ico',
+    icon='resources\\default.ico',
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
