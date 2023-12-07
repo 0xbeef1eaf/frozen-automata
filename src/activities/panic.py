@@ -106,6 +106,7 @@ class PanicActivity(BaseActivity):
 
     def _on_close_request(self):
         if bcrypt.verify(self.password_var.get(), self.config.panic.password_hash):
+            self.root.withdraw()
             self.app.stop()
         else:
             self.logger.warning("Panic password is incorrect.")

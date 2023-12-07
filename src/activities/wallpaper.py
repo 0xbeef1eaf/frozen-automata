@@ -3,7 +3,6 @@ import platform
 import random
 import tempfile
 import threading
-import time
 from PIL import Image
 from typing import TYPE_CHECKING
 from activities import BaseActivity
@@ -12,6 +11,7 @@ from pack.pack import Pack
 
 if TYPE_CHECKING:
     from app import App
+
 
 class WallpaperActivity(BaseActivity):
     __type__ = "wallpaper"
@@ -34,56 +34,17 @@ class WallpaperActivity(BaseActivity):
         # Trap the app exit to change the wallpaper back
         self.app.on_exit_callbacks.append(self.stop)
 
-        # Resize the image to fit the screen
-        temp_file = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-        image = Image.open(self.wallpaper)
-        image.thumbnail(
-            (self.app.root.winfo_screenwidth(), self.app.root.winfo_screenheight()), Image.LANCZOS
-        )
-        image.save(temp_file.name)
-
         self.timeout.start()
 
         if platform.system() == "Windows":
             import ctypes
 
-            ctypes.windll.user32.SystemParametersInfoW(
-                20, 0, temp_file.name, 0
-            )
-        elif platform.system() == "Darwin":
-            import subprocess
-
-            subprocess.run(
-                [
-                    "osascript",
-                    "-e",
-                    f'tell application "Finder" to set desktop picture to POSIX file "{temp_file.name}"',
-                ]
-            )
-        else:
-            self.logger.warning("Unsupported platform")
+            ctypes.windll.user32.SystemParametersInfoW(20, 0, str(self.wallpaper.absolute()), 3)
 
     def stop(self):
         if hasattr(self, "timeout") and self.timeout.is_alive():
             self.timeout.cancel()
-        # Change to a safe wallpaper
-        safe = str(self.pack.wallpaper_safe)
-        self.logger.info(f"Changing wallpaper to {safe}")
+        self.logger.info(f"Changing wallpaper to {self.config.wallpaper.current}")
         if platform.system() == "Windows":
             import ctypes
-
-            ctypes.windll.user32.SystemParametersInfoW(
-                20, 0, safe, 0
-            )
-        elif platform.system() == "Darwin":
-            import subprocess
-
-            subprocess.run(
-                [
-                    "osascript",
-                    "-e",
-                    f'tell application "Finder" to set desktop picture to POSIX file "{safe}"',
-                ]
-            )
-        else:
-            self.logger.warning("Unsupported platform")
+            ctypes.windll.user32.SystemParametersInfoW(20, 0, self.config.wallpaper.current, 3)

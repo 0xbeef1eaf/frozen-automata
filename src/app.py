@@ -1,6 +1,10 @@
+import argparse
+import atexit
 import logging
 import os
+from pathlib import Path
 import platform
+import tempfile
 import threading
 import tkinter
 from typing import Callable, List
@@ -25,8 +29,8 @@ class App(metaclass=Singleton):
     on_exit_callbacks: List[Callable[[], None]] = []
 
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
         self.config = core.config.AppConfig.load()
+        self.logger = logging.getLogger(__name__)
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -35,6 +39,7 @@ class App(metaclass=Singleton):
         if self.config.debug:
             self.logger.setLevel(logging.DEBUG)
 
+        atexit.register(self.stop)
         self.pack = Pack(self.config.pack)
         self.paths = core.paths.Paths()
         self.system_tray: pystray.Icon = self.configure_system_tray()
@@ -68,14 +73,31 @@ class App(metaclass=Singleton):
                 )
             )
 
+        # If the wallpaper module is enabled, we should save the current wallpaper
+        if self.config.wallpaper.active.enabled:
+            if platform.system() == "Windows":
+                import ctypes
+
+                wallpaper = ctypes.create_unicode_buffer(512)
+                result = ctypes.windll.user32.SystemParametersInfoW(
+                    0x73, 512, wallpaper, 0
+                )
+                if result:
+                    self.logger.info(f"Saving current wallpaper {wallpaper.value}")
+                    wallpaper_path = Path(wallpaper.value)
+                    temp_file = tempfile.TemporaryFile(
+                        suffix=wallpaper_path.suffix, delete=False
+                    )
+                    with wallpaper_path.open("rb") as f:
+                        temp_file.write(f.read())
+                    self.config.wallpaper.current = temp_file.name
+
     def tick(self):
         self.lock.acquire(blocking=True)
         if self.config.image.active.should():
             self.launch("image")
-        # if self.config.video.active.should():
-        #     self.launch("video")
-        # if self.config.audio.active.should():
-            # self.launch("audio")
+        if self.config.gif.active.should():
+            self.launch("gif")
         if self.config.prompt.active.should():
             self.launch("prompt")
         if self.config.wallpaper.active.should():
@@ -94,10 +116,6 @@ class App(metaclass=Singleton):
     def configure_system_tray(self):
         menu = pystray.Menu(
             pystray.MenuItem("Panic", lambda: self.launch("panic")),
-            pystray.MenuItem(
-                "Configure",
-                lambda: self.launch("configuration"),
-            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Debug",
@@ -106,14 +124,6 @@ class App(metaclass=Singleton):
                         "Image",
                         lambda: self.launch("image"),
                     ),
-                    # pystray.MenuItem(
-                    #     "Video",
-                    #     lambda: self.launch("video"),
-                    # ),
-                    # pystray.MenuItem(
-                    #     "Audio",
-                    #     lambda: self.launch("audio"),
-                    # ),
                     pystray.MenuItem(
                         "Prompt",
                         lambda: self.launch("prompt"),
@@ -121,6 +131,10 @@ class App(metaclass=Singleton):
                     pystray.MenuItem(
                         "Wallpaper",
                         lambda: self.launch("wallpaper"),
+                    ),
+                    pystray.MenuItem(
+                        "Gif",
+                        lambda: self.launch("gif"),
                     ),
                 ),
                 visible=self.config.debug,

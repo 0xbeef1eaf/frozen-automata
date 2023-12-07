@@ -24,8 +24,9 @@ class BaseActivity(ABC):
 from .panic import PanicActivity
 from .image import ImageActivity
 from .prompt import PromptActivity
-from .configuration import ConfigurationActivity
 from .wallpaper import WallpaperActivity
+from .gif import GifActivity
+
 
 class Activity:
     @staticmethod

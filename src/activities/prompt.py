@@ -1,3 +1,4 @@
+import logging
 import random
 from Levenshtein import distance
 import tkinter
@@ -18,6 +19,7 @@ class PromptActivity(BaseActivity):
     def __init__(self, app: "App", *args, **kwargs):
         super().__init__(app, *args, **kwargs)
         self.app = app
+        self.logger = logging.getLogger(__name__)
         self.config = AppConfig()
         self.pack = Pack()
         self.root = tkinter.Toplevel(self.app.root)
@@ -50,7 +52,7 @@ class PromptActivity(BaseActivity):
         )
 
         self.text_background = Image.new(
-            "RGBA", (self.image.width(), self.image.height() // 4)
+            "RGBA", (self.image.width(), self.image.height() // 2)
         )
         self.canvas.create_image(
             self.image.width() / 2,
@@ -59,6 +61,7 @@ class PromptActivity(BaseActivity):
             anchor=tkinter.SE,
         )
         self.prompt = random.choice(self.pack.prompt)
+
         # Ensure the text is wrapped
         self.canvas.create_text(
             self.image.width() / 2,
@@ -68,10 +71,12 @@ class PromptActivity(BaseActivity):
             fill="white",
             justify=tkinter.CENTER,
             width=self.image.width() - 50,
+            anchor=tkinter.CENTER,
+            activefill="white"
         )
 
         # Add an entry box for the user to write the line in
-        self.entry = tkinter.Entry(self.canvas)
+        self.entry = tkinter.Entry(self.canvas, width=50, justify=tkinter.CENTER)
         self.entry.bind("<Return>", self._on_attempt)
 
         self.canvas.create_window(
@@ -114,6 +119,10 @@ class PromptActivity(BaseActivity):
             self.entry.config(bg="red")
             self.root.after(100, lambda: self.entry.config(bg="white"))
             self.entry.delete(0, tkinter.END)
+            if self.config.prompt.mitosis.should():
+                self.logger.info("Launching mitosis")
+                for _ in range(self.config.prompt.mitosis.random()):
+                    self.app.launch("prompt")
         else:
             self.stop()
 

@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from gc import enable
 import json
+import logging
 import random
-from tracemalloc import start
-
+from typing import Optional
 from dataclasses_json import dataclass_json
+import requests
 from core import Singleton
 from core.paths import Paths
 
@@ -16,7 +16,11 @@ class RangeType:
     maximum: int
 
     def random(self):
-        return random.randint(self.minimum, self.maximum)
+        rand = random.randint(self.minimum, self.maximum)
+        logging.debug(
+            f"Generating random number between {self.minimum} and {self.maximum} = {rand}"
+        )
+        return rand
 
     def __post_init__(self):
         if self.minimum > self.maximum:
@@ -30,7 +34,11 @@ class ProbabilityType:
     probability: float
 
     def should(self):
-        return self.enabled and random.random() <= self.probability
+        rand = random.random()
+        logging.debug(
+            f"Random number between 0 and 1 = {rand}, probability = {self.probability}"
+        )
+        return self.enabled and rand <= self.probability
 
     def __post_init__(self):
         if self.probability < 0 or self.probability > 1:
@@ -39,36 +47,57 @@ class ProbabilityType:
 
 @dataclass_json
 @dataclass
+class ProbabilityRangeType:
+    enabled: bool
+    probability: float
+    minimum: int
+    maximum: int
+
+    def should(self):
+        rand = random.random()
+        logging.debug(
+            f"Random number between 0 and 1 = {rand}, probability = {self.probability}"
+        )
+        return self.enabled and rand <= self.probability
+
+    def random(self):
+        rand = random.randint(self.minimum, self.maximum)
+        logging.debug(
+            f"Generating random number between {self.minimum} and {self.maximum} = {rand}"
+        )
+        return rand
+
+    def __post_init__(self):
+        if self.probability < 0 or self.probability > 1:
+            raise ValueError("Probability must be between 0 and 1")
+        if self.minimum > self.maximum:
+            raise ValueError("Minimum cannot be greater than maximum")
+
+@dataclass_json
+@dataclass
+class GifActivityConfig:
+    active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
+    alpha: RangeType = RangeType(minimum=50, maximum=100)
+    timeout: RangeType = RangeType(minimum=5, maximum=30)
+    mitosis: ProbabilityRangeType = ProbabilityRangeType(
+        enabled=True, probability=0.5, minimum=2, maximum=5
+    )
+    denial: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
+    censor: ProbabilityType = ProbabilityType(enabled=True, probability=0.1)
+    button: bool = True
+
+@dataclass_json
+@dataclass
 class ImageActivityConfig:
     active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
     alpha: RangeType = RangeType(minimum=50, maximum=100)
     timeout: RangeType = RangeType(minimum=5, maximum=30)
-    overlay: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
-    caption: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
-    mitosis: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
-    mitosis_count: RangeType = RangeType(minimum=2, maximum=5)
+    mitosis: ProbabilityRangeType = ProbabilityRangeType(
+        enabled=True, probability=0.5, minimum=2, maximum=5
+    )
     denial: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
+    censor: ProbabilityType = ProbabilityType(enabled=True, probability=0.1)
     button: bool = True
-
-
-@dataclass_json
-@dataclass
-class AudioActivityConfig:
-    active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
-    timeout: RangeType = RangeType(minimum=5, maximum=30)
-    volume: RangeType = RangeType(minimum=50, maximum=100)
-
-
-@dataclass_json
-@dataclass
-class VideoActivityConfig:
-    active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
-    timeout: RangeType = RangeType(minimum=5, maximum=30)
-    volume: RangeType = RangeType(minimum=50, maximum=100)
-    button: bool = True
-    denial: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
-    mitosis: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
-    alpha: RangeType = RangeType(minimum=50, maximum=100)
 
 
 @dataclass_json
@@ -77,6 +106,9 @@ class PromptActivityConfig:
     active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
     mistakes: RangeType = RangeType(minimum=0, maximum=3)
     overlay: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
+    mitosis: ProbabilityRangeType = ProbabilityRangeType(
+        enabled=True, probability=0.5, minimum=2, maximum=5
+    )
 
 
 @dataclass_json
@@ -84,6 +116,7 @@ class PromptActivityConfig:
 class WallpaperActivityConfig:
     active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
     timer: RangeType = RangeType(minimum=30, maximum=60)
+    current: str = ""
 
 
 @dataclass_json
@@ -115,8 +148,7 @@ class AppConfig(metaclass=Singleton):
 
     # Activities
     image: ImageActivityConfig = ImageActivityConfig()
-    # audio: AudioActivityConfig = AudioActivityConfig()
-    # video: VideoActivityConfig = VideoActivityConfig()
+    gif: GifActivityConfig = GifActivityConfig()
     prompt: PromptActivityConfig = PromptActivityConfig()
     wallpaper: WallpaperActivityConfig = WallpaperActivityConfig()
 

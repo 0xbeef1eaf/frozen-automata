@@ -32,12 +32,8 @@ class Pack(metaclass=Singleton):
         self.description = self.config["description"]
         self.tags = self.config["tags"]
         self.images = self.path.joinpath("images").resolve()
-        self.fonts = self.path.joinpath("fonts").resolve()
-        self.audios = self.path.joinpath("audios").resolve()
-        self.videos = self.path.joinpath("videos").resolve()
+        self.gifs = self.path.joinpath("gifs").resolve()
         self.wallpapers = self.path.joinpath("wallpapers").resolve()
-        self.overlays = self.path.joinpath("overlays").resolve()
-        self.captions = self.config["captions"]
         self.prompts = self.config["prompts"]
         self.buttons = self.config["buttons"]
 
@@ -48,38 +44,8 @@ class Pack(metaclass=Singleton):
 
     @property
     @cache
-    def font(self):
-        return list(self.fonts.glob("*"))
-
-    @property
-    @cache
-    def audio(self):
-        return list(self.audios.glob("*"))
-
-    @property
-    @cache
-    def video(self):
-        return list(self.videos.glob("*"))
-
-    @property
-    @cache
     def wallpaper(self):
         return list(self.wallpapers.glob("*"))
-
-    @property
-    @cache
-    def wallpaper_safe(self):
-        return Paths.resources.joinpath("packs", "default", "wallpaper", f'safe.{platform.system().lower()}.png').resolve()
-
-    @property
-    @cache
-    def overlay(self):
-        return list(self.overlays.glob("*"))
-
-    @property
-    @cache
-    def caption(self):
-        return list(self.captions)
 
     @property
     @cache
@@ -90,3 +56,8 @@ class Pack(metaclass=Singleton):
     @cache
     def button(self):
         return list(self.buttons)
+    
+    @property
+    @cache
+    def gif(self):
+        return list(self.gifs.glob("*"))
