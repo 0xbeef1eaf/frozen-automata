@@ -26,7 +26,7 @@ from .image import ImageActivity
 from .prompt import PromptActivity
 from .wallpaper import WallpaperActivity
 from .gif import GifActivity
-
+from .web import WebActivity
 
 class Activity:
     @staticmethod

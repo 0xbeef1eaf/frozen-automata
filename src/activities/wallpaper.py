@@ -19,6 +19,7 @@ class WallpaperActivity(BaseActivity):
     def __init__(self, app: "App"):
         self.app = app
         self.config = AppConfig()
+        self.config.wallpaper.active.enabled = False
         self.pack = Pack()
         self.logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ class WallpaperActivity(BaseActivity):
     def stop(self):
         if hasattr(self, "timeout") and self.timeout.is_alive():
             self.timeout.cancel()
+        self.config.wallpaper.active.enabled = True
         self.logger.info(f"Changing wallpaper to {self.config.wallpaper.current}")
         if platform.system() == "Windows":
             import ctypes

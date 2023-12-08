@@ -1,8 +1,6 @@
 from functools import cache
 import json
 from pathlib import Path
-import platform
-import shutil
 from typing import List
 from core import Singleton
 from core.paths import Paths
@@ -29,13 +27,17 @@ class Pack(metaclass=Singleton):
             self.path = Paths.resources.joinpath("packs", "default").resolve()
         with self.path.joinpath("pack.json").open("r") as f:
             self.config = json.load(f)
-        self.description = self.config["description"]
-        self.tags = self.config["tags"]
         self.images = self.path.joinpath("images").resolve()
         self.gifs = self.path.joinpath("gifs").resolve()
         self.wallpapers = self.path.joinpath("wallpapers").resolve()
-        self.prompts = self.config["prompts"]
-        self.buttons = self.config["buttons"]
+        try:
+            self.description = self.config["description"]
+            self.tags = self.config["tags"]
+            self.prompts = self.config["prompts"]
+            self.buttons = self.config["buttons"]
+            self.webs = self.config["webs"]
+        except KeyError:
+            raise ValueError("Invalid pack.json")
 
     @property
     @cache
@@ -61,3 +63,8 @@ class Pack(metaclass=Singleton):
     @cache
     def gif(self):
         return list(self.gifs.glob("*"))
+    
+    @property
+    @cache
+    def web(self):
+        return list(self.webs)

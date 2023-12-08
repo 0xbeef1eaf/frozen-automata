@@ -27,12 +27,13 @@ class GifActivity(BaseActivity):
         else:
             timeout = 0
         super().__init__(app, timeout=timeout)
+        # Start the window as withdrawn
         self.root = tkinter.Toplevel(self.app.root)
+        self.root.withdraw()
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
         self.root.attributes("-toolwindow", True)
         self.root.attributes("-alpha", self.config.gif.alpha.random()/100.0)
-        self.root.withdraw()
 
         self.image = Image.open(random.choice(self.pack.gif))
         # extract the frames from the image
@@ -58,6 +59,8 @@ class GifActivity(BaseActivity):
             self.frames = [frame.filter(filter) for frame in self.frames]
         
         self.image = ImageTk.PhotoImage(self.frames[0])
+
+        
         self.canvas = tkinter.Canvas(
             self.root,
             width=self.image.width(),
@@ -111,7 +114,7 @@ class GifActivity(BaseActivity):
     def _animate(self, frame):
         self.image.paste(self.frames[frame])
         self.canvas.itemconfig(self.canvas.find_all()[0], image=self.image)
-        self.root.after(int(1000/30), lambda: self._animate((frame + 1) % len(self.frames)))
+        self.root.after(int(1000/30), lambda: hasattr(self, 'frames') and self._animate((frame + 1) % len(self.frames)))
     
     def _on_close_request(self):
         # If the user tries to close the window, we should stop the activity, or should we mess with them?
@@ -126,3 +129,5 @@ class GifActivity(BaseActivity):
     def stop(self):
         self.root.after(0, self.root.destroy)
         super().stop()
+        del self.frames
+        del self.image

@@ -119,3 +119,4 @@ class ImageActivity(BaseActivity):
     def stop(self):
         self.root.after(0, self.root.destroy)
         super().stop()
+        del self.image

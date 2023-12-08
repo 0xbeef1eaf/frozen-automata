@@ -102,7 +102,8 @@ class App(metaclass=Singleton):
             self.launch("prompt")
         if self.config.wallpaper.active.should():
             self.launch("wallpaper")
-        # Should sleep based on the hibernation strategy
+        if self.config.web.active.should():
+            self.launch("web")
         self.lock.release()
         self.hibernate.sleep()
         self.tick()
@@ -111,7 +112,8 @@ class App(metaclass=Singleton):
         if activity in ("panic", "configure"):
             self.lock.acquire(blocking=True)
         self.logger.info(f"Launching activity {activity}")
-        Activity(activity, self)
+        thread = threading.Thread(target= lambda: Activity(activity, self))
+        thread.start()
 
     def configure_system_tray(self):
         menu = pystray.Menu(
@@ -135,6 +137,10 @@ class App(metaclass=Singleton):
                     pystray.MenuItem(
                         "Gif",
                         lambda: self.launch("gif"),
+                    ),
+                    pystray.MenuItem(
+                        "Web",
+                        lambda: self.launch("web"),
                     ),
                 ),
                 visible=self.config.debug,

@@ -118,6 +118,11 @@ class WallpaperActivityConfig:
     timer: RangeType = RangeType(minimum=30, maximum=60)
     current: str = ""
 
+@dataclass_json
+@dataclass
+class WebActivityConfig:
+    active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
+    private: ProbabilityType = ProbabilityType(enabled=True, probability=1.0)
 
 @dataclass_json
 @dataclass
@@ -151,6 +156,7 @@ class AppConfig(metaclass=Singleton):
     gif: GifActivityConfig = GifActivityConfig()
     prompt: PromptActivityConfig = PromptActivityConfig()
     wallpaper: WallpaperActivityConfig = WallpaperActivityConfig()
+    web: WebActivityConfig = WebActivityConfig()
 
     # Hibernate
     hibernate: HibernateConfig = HibernateConfig()
