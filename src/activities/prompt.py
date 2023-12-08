@@ -51,19 +51,38 @@ class PromptActivity(BaseActivity):
             anchor=tkinter.SE,
         )
 
-        self.text_background = Image.new(
-            "RGBA", (self.image.width(), self.image.height() // 2)
-        )
-        self.canvas.create_image(
-            self.image.width() / 2,
-            self.image.height() / 2,
-            image=ImageTk.PhotoImage(self.text_background),
-            anchor=tkinter.SE,
-        )
+
         self.prompt = random.choice(self.pack.prompt)
 
         # Ensure the text is wrapped
-        self.canvas.create_text(
+        text = self.canvas.create_text(
+            self.image.width() / 2,
+            self.image.height() / 2,
+            text=self.prompt,
+            font=("Helvetica", 16),
+            fill="white",
+            justify=tkinter.CENTER,
+            width=self.image.width() - 50,
+            anchor=tkinter.CENTER,
+            activefill="white"
+        )
+
+        text_dim = self.canvas.bbox(text)
+
+        self.text_background = ImageTk.PhotoImage(
+            Image.new(
+                "RGBA", (text_dim[2] - text_dim[0] + 10, text_dim[3] - text_dim[1] + 10), (0, 0, 0, 128)
+            )
+        )
+        self.canvas.create_image(
+            (self.image.width() / 2, self.image.height() / 2),
+            image=self.text_background,
+            anchor=tkinter.CENTER,
+        )
+        self.canvas.text_background = self.text_background # type: ignore
+
+        # Redraw the text on top of the background
+        text = self.canvas.create_text(
             self.image.width() / 2,
             self.image.height() / 2,
             text=self.prompt,
@@ -77,7 +96,11 @@ class PromptActivity(BaseActivity):
 
         # Add an entry box for the user to write the line in
         self.entry = tkinter.Entry(self.canvas, width=50, justify=tkinter.CENTER)
-        self.entry.bind("<Return>", self._on_attempt)
+
+        if self.config.prompt.track.should():
+            self.entry.bind("<Key>", self._on_keypress)
+        else:
+            self.entry.bind("<Return>", self._on_attempt)
 
         self.canvas.create_window(
             self.image.width() / 2,
@@ -106,12 +129,26 @@ class PromptActivity(BaseActivity):
         self.entry.focus_set()
         self.root.focus_force()
 
+    def _on_keypress(self, event):
+        """
+        Check if the entry is correct so far, else wipe it
+        """
+        attempt = self.entry.get()
+        prompt = self.prompt[: len(attempt)]
+        if attempt != prompt:
+            self.entry.delete(0, tkinter.END)
+            self.entry.config(bg="red")
+            self.root.after(100, lambda: self.entry.config(bg="white"))
+        elif attempt == self.prompt:
+            self.stop()
+
+
     def _on_attempt(self, event):
         mistakes = self.config.prompt.mistakes.random()
         if (
             distance(
-                self.entry.get().lower().strip(),
-                self.prompt.lower().strip(),
+                self.entry.get().strip(),
+                self.prompt.strip(),
                 score_cutoff=mistakes,
             )
             > mistakes

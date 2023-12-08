@@ -109,6 +109,7 @@ class PromptActivityConfig:
     mitosis: ProbabilityRangeType = ProbabilityRangeType(
         enabled=True, probability=0.5, minimum=2, maximum=5
     )
+    track: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
 
 
 @dataclass_json
@@ -178,6 +179,11 @@ class AppConfig(metaclass=Singleton):
             return cfg
         with open(paths.config, "r") as f:
             return AppConfig.from_json(f.read())  # type: ignore
+
+    def reload(self):
+        paths = Paths()
+        with open(paths.config, "r") as f:
+            self.__dict__ = AppConfig.from_json(f.read()).__dict__  # type: ignore
 
     def save(self):
         paths = Paths()

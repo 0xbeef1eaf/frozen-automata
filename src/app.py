@@ -43,10 +43,10 @@ class App(metaclass=Singleton):
         self.pack = Pack(self.config.pack)
         self.paths = core.paths.Paths()
         self.system_tray: pystray.Icon = self.configure_system_tray()
-        self.hook = keyboard.add_hotkey(
-            self.config.panic.keychord, self.launch, args=("panic",)
-        )
-        self.hibernate = Hibernation(self.config.hibernate.strategy, self)
+
+        self.reload()
+
+        
 
         self.lock = threading.Lock()
 
@@ -72,6 +72,7 @@ class App(metaclass=Singleton):
                     self.stop,
                 )
             )
+
 
         # If the wallpaper module is enabled, we should save the current wallpaper
         if self.config.wallpaper.active.enabled:
@@ -109,7 +110,7 @@ class App(metaclass=Singleton):
         self.tick()
 
     def launch(self, activity: str):
-        if activity in ("panic", "configure"):
+        if activity in ("panic"):
             self.lock.acquire(blocking=True)
         self.logger.info(f"Launching activity {activity}")
         thread = threading.Thread(target= lambda: Activity(activity, self))
@@ -118,6 +119,7 @@ class App(metaclass=Singleton):
     def configure_system_tray(self):
         menu = pystray.Menu(
             pystray.MenuItem("Panic", lambda: self.launch("panic")),
+            pystray.MenuItem("Reload", lambda: self.reload()),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Debug",
@@ -151,6 +153,20 @@ class App(metaclass=Singleton):
             icon=Image.open(self.paths.resources.joinpath("default.ico").resolve()),
             menu=menu,
         )
+
+    def reload(self):
+        self.config.reload()
+        if self.config.panic.keychord != "":
+            self.hook = keyboard.add_hotkey(
+                self.config.panic.keychord, self.launch, args=("panic",)
+            )
+        elif hasattr(self, "hook"):
+            keyboard.remove_hotkey(self.hook)
+        else:
+            self.logger.warning("No panic keychord set")
+        self.hibernate = Hibernation(self.config.hibernate.strategy, self)
+
+
 
     def start(self):
         self.logger.info("Starting application")
