@@ -94,15 +94,15 @@ class App(metaclass=Singleton):
 
     def tick(self):
         self.lock.acquire(blocking=True)
-        if self.config.image.active.should():
+        if self.config.image.active.should() and len(self.pack.image) > 0:
             self.launch("image")
-        if self.config.gif.active.should():
+        if self.config.gif.active.should() and len(self.pack.gif) > 0:
             self.launch("gif")
-        if self.config.prompt.active.should():
+        if self.config.prompt.active.should() and len(self.pack.prompt) > 0:
             self.launch("prompt")
-        if self.config.wallpaper.active.should():
+        if self.config.wallpaper.active.should() and len(self.pack.wallpaper) > 0:
             self.launch("wallpaper")
-        if self.config.web.active.should():
+        if self.config.web.active.should() and len(self.pack.web) > 0:
             self.launch("web")
         self.lock.release()
         self.hibernate.sleep()
