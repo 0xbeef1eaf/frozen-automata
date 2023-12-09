@@ -1,5 +1,6 @@
 import logging
 import random
+import threading
 import tkinter
 from typing import TYPE_CHECKING
 
@@ -9,18 +10,26 @@ from core.config.app import AppConfig
 from pack.pack import Pack
 from PIL import Image, ImageTk, ImageFilter
 
+config = AppConfig.load()
+max_active = threading.Semaphore(config.gif.max.random())
+del config
 
 if TYPE_CHECKING:
     from app import App
 
+
 class GifActivity(BaseActivity):
     __type__ = "gif"
 
-    def __init__(self, app: 'App'):
+    def __init__(self, app: "App"):
+        response = max_active.acquire(blocking=False)
         # Same as ImageActivity, but with a gif so that it is animated and loops
         self.pack = Pack()
         self.config = AppConfig()
         self.logger = logging.getLogger(__name__)
+        if not response:
+            self.logger.info("Max active reached, not starting activity")
+            return
         # Should we set a timeout?
         if self.config.gif.timeout.minimum + self.config.gif.timeout.maximum > 0:
             timeout = self.config.gif.timeout.random()
@@ -33,7 +42,7 @@ class GifActivity(BaseActivity):
         self.root.overrideredirect(True)
         self.root.attributes("-topmost", True)
         self.root.attributes("-toolwindow", True)
-        self.root.attributes("-alpha", self.config.gif.alpha.random()/100.0)
+        self.root.attributes("-alpha", self.config.gif.alpha.random() / 100.0)
 
         self.image = Image.open(random.choice(self.pack.gif))
         # extract the frames from the image
@@ -45,22 +54,31 @@ class GifActivity(BaseActivity):
         except EOFError:
             pass
         # resize the frames
-        [frame.thumbnail((int(self.root.winfo_screenwidth() * 0.3), int(self.root.winfo_screenheight() * 0.3))) for frame in self.frames]
+        [
+            frame.thumbnail(
+                (
+                    int(self.root.winfo_screenwidth() * 0.3),
+                    int(self.root.winfo_screenheight() * 0.3),
+                )
+            )
+            for frame in self.frames
+        ]
 
         # Check if we should add an image overlay (censor)
         if self.config.gif.censor.should():
             # Add the Image filter
-            filter = random.choice([
-                ImageFilter.GaussianBlur(radius=10),
-                ImageFilter.BoxBlur(radius=10),
-                ImageFilter.GaussianBlur(radius=2),
-                ImageFilter.BoxBlur(radius=2)
-            ])
+            filter = random.choice(
+                [
+                    ImageFilter.GaussianBlur(radius=10),
+                    ImageFilter.BoxBlur(radius=10),
+                    ImageFilter.GaussianBlur(radius=2),
+                    ImageFilter.BoxBlur(radius=2),
+                ]
+            )
             self.frames = [frame.filter(filter) for frame in self.frames]
-        
+
         self.image = ImageTk.PhotoImage(self.frames[0])
 
-        
         self.canvas = tkinter.Canvas(
             self.root,
             width=self.image.width(),
@@ -105,28 +123,33 @@ class GifActivity(BaseActivity):
             )
         else:
             self.root.bind("<Button-1>", lambda _: self._on_close_request())
-        
+
         self.root.deiconify()
-        
+
         # Start the animation
         self._animate(0)
 
     def _animate(self, frame):
         self.image.paste(self.frames[frame])
         self.canvas.itemconfig(self.canvas.find_all()[0], image=self.image)
-        self.root.after(int(1000/30), lambda: hasattr(self, 'frames') and self._animate((frame + 1) % len(self.frames)))
-    
+        self.root.after(
+            int(1000 / 30),
+            lambda: hasattr(self, "frames")
+            and self._animate((frame + 1) % len(self.frames)),
+        )
+
     def _on_close_request(self):
         # If the user tries to close the window, we should stop the activity, or should we mess with them?
         if self.config.image.mitosis.should():
             for _ in range(self.config.image.mitosis.random()):
-                self.app.launch("gif")
+                self.app.launch()
         if self.config.image.denial.should():
             return
         else:
             self.stop()
-    
+
     def stop(self):
+        max_active.release()
         self.root.after(0, self.root.destroy)
         super().stop()
         del self.frames

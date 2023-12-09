@@ -20,6 +20,9 @@ class DefaultHibernation(BaseHibernation):
         """
         Sleeps the thread for a set amount of time to determine the tick rate.
         """
-        _time = self.config.hibernate.timer.random() / self.config.hibernate.activity.random()
+        _time = (
+            self.config.hibernate.timer.random()
+            / self.config.hibernate.activity.random()
+        )
         self.logger.debug(f"Sleeping for {_time} seconds")
         time.sleep(_time)

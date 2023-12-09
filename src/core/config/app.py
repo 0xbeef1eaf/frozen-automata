@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import json
 import logging
+import platform
 import random
 from typing import Optional
 from dataclasses_json import dataclass_json
@@ -73,6 +74,7 @@ class ProbabilityRangeType:
         if self.minimum > self.maximum:
             raise ValueError("Minimum cannot be greater than maximum")
 
+
 @dataclass_json
 @dataclass
 class GifActivityConfig:
@@ -85,6 +87,8 @@ class GifActivityConfig:
     denial: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
     censor: ProbabilityType = ProbabilityType(enabled=True, probability=0.1)
     button: bool = True
+    max: RangeType = RangeType(minimum=5, maximum=10)
+
 
 @dataclass_json
 @dataclass
@@ -98,6 +102,7 @@ class ImageActivityConfig:
     denial: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
     censor: ProbabilityType = ProbabilityType(enabled=True, probability=0.1)
     button: bool = True
+    max: RangeType = RangeType(minimum=20, maximum=50)
 
 
 @dataclass_json
@@ -110,6 +115,8 @@ class PromptActivityConfig:
         enabled=True, probability=0.5, minimum=2, maximum=5
     )
     track: ProbabilityType = ProbabilityType(enabled=True, probability=0.5)
+    max: RangeType = RangeType(minimum=2, maximum=5)
+    alpha: RangeType = RangeType(minimum=50, maximum=100)
 
 
 @dataclass_json
@@ -119,11 +126,13 @@ class WallpaperActivityConfig:
     timer: RangeType = RangeType(minimum=30, maximum=60)
     current: str = ""
 
+
 @dataclass_json
 @dataclass
 class WebActivityConfig:
     active: ProbabilityType = ProbabilityType(enabled=True, probability=0.05)
     private: ProbabilityType = ProbabilityType(enabled=True, probability=1.0)
+
 
 @dataclass_json
 @dataclass
@@ -187,5 +196,16 @@ class AppConfig(metaclass=Singleton):
 
     def save(self):
         paths = Paths()
+        if platform.system() == "Windows":
+            import win32con
+            import win32file
+
+            win32file.SetFileAttributesW(str(paths.config), win32con.FILE_ATTRIBUTE_NORMAL)
         with open(paths.config, "w") as f:
             json.dump(self.__dict__, f, indent=4, default=lambda o: o.__dict__)
+        # Hide the file
+        if platform.system() == "Windows":
+            import win32con
+            import win32file
+
+            win32file.SetFileAttributesW(str(paths.config), win32con.FILE_ATTRIBUTE_HIDDEN)

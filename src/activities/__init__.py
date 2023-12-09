@@ -1,9 +1,16 @@
 from abc import ABC
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Set
+
+from core.config.app import AppConfig
+from pack.pack import Pack
 
 if TYPE_CHECKING:
     from app import App
+
+
+config = AppConfig.load()
+pack = Pack(config.pack)
 
 
 class BaseActivity(ABC):
@@ -22,11 +29,18 @@ class BaseActivity(ABC):
 
 
 from .panic import PanicActivity
-from .image import ImageActivity
-from .prompt import PromptActivity
-from .wallpaper import WallpaperActivity
-from .gif import GifActivity
-from .web import WebActivity
+
+if config.image.active.enabled and len(pack.image) > 0:
+    from .image import ImageActivity
+if config.prompt.active.enabled and len(pack.prompt) > 0:
+    from .prompt import PromptActivity
+if config.wallpaper.active.enabled and len(pack.wallpaper) > 0:
+    from .wallpaper import WallpaperActivity
+if config.gif.active.enabled and len(pack.gif) > 0:
+    from .gif import GifActivity
+if config.web.active.enabled and len(pack.web) > 0:
+    from .web import WebActivity
+
 
 class Activity:
     @staticmethod
@@ -43,7 +57,9 @@ class Activity:
         raise ValueError(f"Activity {activity_type} not found")
 
     @staticmethod
-    def all(_cls):
-        return set(_cls.__type__).union(
-            [s for c in _cls.__type__() for s in Activity.__all_subclasses__(c)]
-        )
+    def all() -> List[str]:
+        return [
+            c.__type__
+            for c in Activity.__all_subclasses__(BaseActivity)
+            if c.__type__ != "panic"
+        ]

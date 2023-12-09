@@ -12,12 +12,7 @@ class Pack(metaclass=Singleton):
     description: str
     tags: List[str]
     images: Path
-    fonts: Path
-    audios: Path
-    videos: Path
     wallpapers: Path
-    overlays: Path
-    captions: List[str]
     prompts: List[str]
     buttons: List[str]
 
@@ -58,12 +53,12 @@ class Pack(metaclass=Singleton):
     @cache
     def button(self):
         return list(self.buttons)
-    
+
     @property
     @cache
     def gif(self):
         return list(self.gifs.glob("*"))
-    
+
     @property
     @cache
     def web(self):

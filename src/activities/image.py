@@ -1,5 +1,6 @@
 import logging
 import random
+import threading
 import tkinter
 from typing import TYPE_CHECKING
 from PIL import Image, ImageTk, ImageFilter
@@ -11,6 +12,10 @@ from pack import Pack
 if TYPE_CHECKING:
     from app import App
 
+config = AppConfig.load()
+max_active = threading.Semaphore(config.image.max.random())
+del config
+
 
 class ImageActivity(BaseActivity):
     """
@@ -20,14 +25,18 @@ class ImageActivity(BaseActivity):
     __type__ = "image"
 
     def __init__(self, app: "App"):
+        response = max_active.acquire(blocking=False)
+        self.pack = Pack()
+        self.config = AppConfig()
+        self.logger = logging.getLogger(__name__)
+        if not response:
+            self.logger.info("Max active reached, not starting activity")
+            return
         timeout = 0
         if app.config.image.timeout.minimum + app.config.image.timeout.maximum > 0:
             timeout = app.config.image.timeout.random()
 
         super().__init__(app, timeout=timeout)
-        self.pack = Pack()
-        self.config = AppConfig()
-        self.logger = logging.getLogger(__name__)
         # Should we set a timeout?
 
         self.root = tkinter.Toplevel(self.app.root)
@@ -43,12 +52,14 @@ class ImageActivity(BaseActivity):
         # Check if we should add an image overlay (censor)
         if self.config.image.censor.should():
             # Add the Image filter
-            filter = random.choice([
-                ImageFilter.GaussianBlur(radius=10),
-                ImageFilter.BoxBlur(radius=10),
-                ImageFilter.GaussianBlur(radius=2),
-                ImageFilter.BoxBlur(radius=2)
-            ])
+            filter = random.choice(
+                [
+                    ImageFilter.GaussianBlur(radius=10),
+                    ImageFilter.BoxBlur(radius=10),
+                    ImageFilter.GaussianBlur(radius=2),
+                    ImageFilter.BoxBlur(radius=2),
+                ]
+            )
             self.image = self.image.filter(filter)
 
         self.image = ImageTk.PhotoImage(self.image)
@@ -110,13 +121,13 @@ class ImageActivity(BaseActivity):
         # If the user tries to close the window, we should stop the activity, or should we mess with them?
         if self.config.image.mitosis.should():
             for _ in range(self.config.image.mitosis.random()):
-                self.app.launch("image")
-        elif self.config.image.denial.should():
-            pass
-        else:
-            self.stop()
+                self.app.launch()
+        if self.config.image.denial.should():
+            return
+        self.stop()
 
     def stop(self):
+        max_active.release()
         self.root.after(0, self.root.destroy)
         super().stop()
         del self.image

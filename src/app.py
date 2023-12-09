@@ -4,11 +4,15 @@ import logging
 import os
 from pathlib import Path
 import platform
+import random
+import signal
+import sys
 import tempfile
 import threading
 import tkinter
-from typing import Callable, List
+from typing import Callable, List, Optional
 from PIL import Image
+from browsers import get
 
 import keyboard
 from activities import Activity
@@ -46,8 +50,6 @@ class App(metaclass=Singleton):
 
         self.reload()
 
-        
-
         self.lock = threading.Lock()
 
         self.root = tkinter.Tk()
@@ -73,7 +75,6 @@ class App(metaclass=Singleton):
                 )
             )
 
-
         # If the wallpaper module is enabled, we should save the current wallpaper
         if self.config.wallpaper.active.enabled:
             if platform.system() == "Windows":
@@ -94,26 +95,26 @@ class App(metaclass=Singleton):
                     self.config.wallpaper.current = temp_file.name
 
     def tick(self):
-        self.lock.acquire(blocking=True)
-        if self.config.image.active.should() and len(self.pack.image) > 0:
-            self.launch("image")
-        if self.config.gif.active.should() and len(self.pack.gif) > 0:
-            self.launch("gif")
-        if self.config.prompt.active.should() and len(self.pack.prompt) > 0:
-            self.launch("prompt")
-        if self.config.wallpaper.active.should() and len(self.pack.wallpaper) > 0:
-            self.launch("wallpaper")
-        if self.config.web.active.should() and len(self.pack.web) > 0:
-            self.launch("web")
-        self.lock.release()
-        self.hibernate.sleep()
-        self.tick()
+        while True:
+            with self.lock:
+                for _type in Activity.all():
+                    config = getattr(self.config, _type)
+                    if config.active.should():
+                        self.launch(_type)
+            self.hibernate.sleep()
 
-    def launch(self, activity: str):
-        if activity in ("panic"):
-            self.lock.acquire(blocking=True)
+    def launch(self, activity: Optional[str] = None):
+        if activity is None:
+            # Determine correct activity by the probability of each activity
+            activity = random.choices(
+                Activity.all(),
+                weights=[getattr(self.config, _type).active.probability for _type in Activity.all()],
+                k=1,
+            )[0]
         self.logger.info(f"Launching activity {activity}")
-        thread = threading.Thread(target= lambda: Activity(activity, self))
+        thread = threading.Timer(
+            random.random(), function=lambda: Activity(activity, self)
+        )
         thread.start()
 
     def configure_system_tray(self):
@@ -166,8 +167,6 @@ class App(metaclass=Singleton):
             self.logger.warning("No panic keychord set")
         self.hibernate = Hibernation(self.config.hibernate.strategy, self)
 
-
-
     def start(self):
         self.logger.info("Starting application")
         [thread.start() for thread in self.threads]
@@ -179,7 +178,11 @@ class App(metaclass=Singleton):
         self.root.after(0, self.root.destroy)
         self.system_tray.stop()
         keyboard.remove_hotkey(self.hook)
-        os._exit(0)
+        
+        pid = os.getpid()
+
+        # Add a delay to allow the threads to stop
+        threading.Timer(5, os.kill, args=[pid, signal.SIGINT]).start()
 
 
 if __name__ == "__main__":

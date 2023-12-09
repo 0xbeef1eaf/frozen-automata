@@ -16,6 +16,7 @@ class PanicActivity(BaseActivity):
     __type__ = "panic"
 
     def __init__(self, app: "App"):
+        app.lock.acquire(blocking=True)
         timeout = 30  # 30 seconds to enter the password
         super().__init__(app, timeout=timeout)
         self.logger = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ class PanicActivity(BaseActivity):
             self.root.after(100, lambda: self.prompt.config(bg="white"))
             # Clear the entry box
             self.password_var.set("")
+            self.app.launch()
 
     def stop(self):
         self.root.destroy()
